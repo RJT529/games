@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Snake Game</title>
+	<meta charset = "utf-8">
+	<script type="text/javascript" src = "jquery.js"></script>
+</head>
+<body style = "background-color:black" >
+	<canvas id = "canvas" width = "500px" height = "550px" ></canvas>
+	<script type="text/javascript">
+
+		$(document).ready(function(){
+
+			//Canvas details
+			var canvas = $('#canvas')[0];
+			var ctx = canvas.getContext("2d");	
+			var w = $('#canvas').width();
+			var h = $('#canvas').height();
+			$('#canvas').css("background-color","lightyellow").css('border','1px solid black');
+
+			//declaring Global variables
+			var cw = 10;	//cell-width
+			var d ;   		//direction
+			var food;		//food
+			var score ;		//score
+			var pause = false;
+			var myGameArea ={};
+			var c1 = 0;
+			var c2 = 0;
+
+			var snakeArr;	//an array of object for the snake
+
+			function init() {
+				d = "right";	//default direction towards right
+				createSnake(5);	//creating snake
+				createFood();	//creating food
+				score = 0;		//initializing score
+				myScore = new component("25px","Consolas","white",250,540,"text");
+				myScore.text = score;
+				myScore.update();
+				if(typeof gameLoop != "undefined")clearInterval(gameLoop);		//to refresh the game
+				gameLoop = setInterval(paint,100);							//to run the game
+			}
+
+			init();		//calling init
+
+			function createStatusBar(){
+				ctx.moveTo(0,500);
+				ctx.lineTo(500,500);
+				ctx.stroke();
+				var grd=ctx.createLinearGradient(0,50,500,0);
+				grd.addColorStop(0,"orange");
+				grd.addColorStop(.8,"red");
+				ctx.fillStyle=grd;
+				ctx.fillRect(0,500,500,50);
+			}
+
+			function createSnake(l) {
+				var length = l;			//initial length of the snake
+				snakeArr = [];			//making an array
+				for(i = length-1; i >= 0 ; i--) {
+					snakeArr.push({x:i, y:0});
+				}
+			}
+
+			function createFood() {
+				var x = Math.floor(Math.random()*((w-cw)/cw));		//randomly intializing the coordinates of food
+				var y = Math.floor(Math.random()*((h-50-cw)/cw));
+				food = {
+					x:x,
+					y:y
+				};
+			}
+
+			function component(width,height,color,x,y, type) {		//function to add new components
+																	//adds new objects
+
+				this.type = type;
+				if(this.type == "image") {
+					this.image = new Image();
+					this.image.src = color;
+				}
+				this.width = width;
+				this.height = height;
+				this.speedY = 0;
+				this.x = x;
+				this.y = y;
+				this.gravity = 0.5;
+				this.gravitySpeed = 0;
+				this.bounce = 1;
+				this.update = function(){			
+					if(this.type == "text") {
+						ctx.font = this.width + " " + this.height;
+						ctx.fillStyle = color;
+						ctx.fillText(this.text, this.x, this.y);
+					} else if(this.type == "image"){
+						ctx.drawImage(this.image,this.x,this.y,this.width,this.height);
+
+					} else {
+
+						ctx.fillStyle = color;
+						ctx.fillRect(this.x,this.y,this.width,this.height);
+					}			
+				}
+				this.newPos = function(){
+					this.gravitySpeed += this.gravity;
+					this.y += this.speedY + this.gravitySpeed;
+					this.hitBottom();
+				}
+
+				this.hitBottom = function() {
+					if(this.type == "text"){
+			        	var rockbottom = 250;
+
+					} else if(this.type == "image") {
+						var rockbottom = 270;
+					} else {
+			        	var rockbottom = (h - 50 - this.height)/2;
+					}
+
+			        if (this.y > rockbottom) {
+			            this.y = rockbottom;
+						this.gravitySpeed = -(this.gravitySpeed * this.bounce);
+			        }
+				}
+
+				this.clicked = function() {
+			        var myleft = this.x;
+			        var myright = this.x + (this.width);
+			        var mytop = this.y;
+			        var mybottom = this.y + (this.height);
+			        var clicked = true;
+			        if ((mybottom < myGameArea.y) || (mytop > myGameArea.y) || (myright < myGameArea.x) || (myleft > myGameArea.x)) {
+			            clicked = false;
+			        }
+			        return clicked;
+			    }
+			}
+
+			function paint(){			
+			if(pause != true) {				//check whether the game has paused
+				//painting canvas
+				ctx.fillStyle = "lightyellow";
+				ctx.fillRect(0,0,w,h);
+				ctx.strokeStyle = "red";
+				ctx.strokeRect(0,0,w,h);
+
+					//extracting coordinates for the head of snake
+					var nx = snakeArr[0].x;
+					var ny = snakeArr[0].y;
+
+					//incrementing in the particular direction
+					if(d == "right") nx = (nx + 1)%50;
+					else if(d == "left") {
+						nx = (nx - 1)%50;
+						if(nx < 0) {
+							nx = 49;
+						}
+					}
+					else if(d == "up") {
+						ny = (ny - 1)%50;
+						if(ny < 0) {
+							ny = 49;
+						}
+					}
+					else if(d == "down") ny = (ny + 1)%50;
+
+					//check whether the game has come to an end
+					if(check_collision(nx,ny,snakeArr)) {
+						clearInterval(gameLoop);
+						setTimeout(function(){
+						bounceF();
+						return;
+						}, 500);
+
+					}
+
+					//if the snake eats the food then update the head of the snake
+					if(nx == food.x && ny == food.y)
+					{
+						var tail = {x: nx, y: ny};
+						score++;
+						createFood();
+					}
+					else		//else pop the tail and add it at the head of the snake
+					{
+						var tail = snakeArr.pop(); //pops out the last cell
+						tail.x = nx; tail.y = ny;
+					}
+					snakeArr.unshift(tail);			//appending the tail to snake
+
+
+					//painting the snake
+					for(var i = 0; i < snakeArr.length; i++)
+					{
+						var c = snakeArr[i];
+						paint_cell(c.x, c.y,i);
+					}
+
+					//painting the food
+					paint_cell(food.x, food.y,'f');
+
+					//Lets update the score
+					
+					createStatusBar();
+
+					myScore.text =  score;
+					myScore.update();
+
+
+			} else {				//will occur if the game has been paused
+				pauseBox.update();
+				pauseText.update();
+			}
+					
+			}
+
+			function bounceF(){		//function to be called when the game ends
+
+				endBox = new component(330,200,"orange",(w-330)/2,100);
+				refresh = new component(50,50,"refresh.png",230,220,"image");
+				myScore.text = "Game Over, Score:"+score;
+				myScore.x = 135;
+				myScore.y = 200;
+		        createSnakeAnimation(50,52);
+				window.addEventListener('mousedown', function (e) {
+		            myGameArea.x = e.pageX;
+		            myGameArea.y = e.pageY;
+		        })
+		        window.addEventListener('mouseup', function (e) {
+		            myGameArea.x = false;
+		            myGameArea.y = false;
+		        })
+
+
+				bounce = setInterval(updateGameArea,50);
+			}
+
+			function updateGameArea() {
+
+				ctx.fillStyle = "lightyellow";
+				ctx.fillRect(0,0,w,h);
+				ctx.strokeStyle = "black";
+				ctx.strokeRect(0,0,w,h);
+
+				createStatusBar();
+				c1++;
+				var nx = snakeArr[0].x;
+				var ny = snakeArr[0].y;	
+				if(c1%2 == 0) {
+					c2++;
+					
+					if(c2%10 == 0 || c2%10 == 1){
+						ny++;
+					}else if(c2%10 == 6 || c2%10 == 5) {
+						ny--;
+					}else{
+						nx = (nx+1)%70;
+					}
+				}
+				var tail = snakeArr.pop(); 
+				tail.x = nx; tail.y = ny;	
+				snakeArr.unshift(tail);			//appending the tail to snake
+
+				for(var i = 0; i < snakeArr.length; i++)
+				{
+						var c = snakeArr[i];
+						paint_cell(c.x, c.y,i,"animation");
+				}
+
+
+				
+				endBox.speedY = +1;
+				endBox.newPos();
+				endBox.update();
+				
+				myScore.speedY = +1;
+				myScore.newPos();
+				myScore.update();
+				
+				refresh.speedY = +1;
+				refresh.newPos();
+				if (myGameArea.x && myGameArea.y) {
+					if(refresh.clicked()) {
+						clearInterval(bounce);
+						init();
+					}
+				}
+				refresh.update();
+
+			}
+
+			function createSnakeAnimation(l,y) {
+				var length = l;			//initial length of the snake
+				snakeArr = [];			//making an array
+				for(i = 0; i < l ; i++) {
+					snakeArr.push({x:-i, y:y});
+				}
+			}
+
+			//This function paints the cell of snake and food
+			function paint_cell(x,y,i,animation) {
+				if(animation){
+					if(i == 0) {
+						var c1 = "red";
+						var c2 = "orange";				
+					} else if(i == "f") {
+						var c1 = "red";
+						var c2 = "red";					
+					} else {
+						var c1 = "red";
+						var c2 = "red";
+					}
+				} else {
+					if(i == 0) {
+						var c1 = "black";
+						var c2 = "black";				
+					} else if(i == "f") {
+						var c1 = "red";
+						var c2 = "red";					
+					} else {
+						var c1 = "black";
+						var c2 = "white";
+					}
+				}
+				
+				ctx.fillStyle = c1;
+				ctx.fillRect(x*cw,y*cw,cw,cw);
+				ctx.strokeStyle = c2;
+				ctx.strokeRect(x*cw,y*cw,cw,cw);
+			}
+
+			function check_collision(x, y, array)
+			{
+				//This function will check if the provided x/y coordinates exist
+				//in an array of cells or not
+				for(var i = 0; i < array.length; i++)
+				{
+					if(array[i].x == x && array[i].y == y)
+					 return true;
+				}
+				return false;
+			}
+			
+			//Lets add the keyboard controls now
+			$(document).keydown(function(e){
+				var key = e.which;
+				
+				if(key == "32" && pause == false) {			//to enable paus
+					pause = true;
+					pauseBox = new component(200,150,"orange",150,175);
+					pauseText = new component("40px","Consolas","lightyellow",180,260,"text");
+					pauseText.text = "Paused";
+
+				} else if(key == "32" || key == "37" || key == "38" || key == "39" || key == "40") {
+					pause = false;
+					//We will add another clause to prevent reverse gear
+					if(key == "37" && d != "right") d = "left";
+					else if(key == "38" && d != "down") d = "up";
+					else if(key == "39" && d != "left") d = "right";
+					else if(key == "40" && d != "up") d = "down";
+					//The snake is now keyboard controllable
+				}
+			});
+
+			
+
+		});
+	
+	</script>
+</body>
+</html>
