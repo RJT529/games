@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>2D Game</title>
+	<meta http-equiv="refresh" content="10000">
+	<style>
+		#outer {
+			position: relative;
+			top:100px;
+			
+		}
+		#inner {
+			position: relative;
+			height : 120px;
+			width : 120px;
+			background-color: yellow;
+		}
+		#circle {
+			background-color: red;
+			width: 15px;
+			position: absolute;
+		}
+		#break{
+			position:absolute; 
+			top:0px;
+			left: 50px;
+
+		}
+		#heading {
+			text-align: center;
+			color: red;
+		}
+	</style>
+</head>
+<body>
+	<h1 id = "heading">TRY TO STOP THE MOVING CIRCLE IN THE POSITION MENTIONED</h1>
+	
+	<input type = "button" value="STOP" id = "stop" onclick="stop()">
+	<div id = "outer" >
+
+		<div id = "inner">
+			<div id = "circle" >|||</div>
+		</div>
+		<span id = "break">|||</span>
+	</div>
+
+	<script type="text/javascript">
+		var id ;
+		var d = document.getElementById('circle');
+		d.style.top = "250px";
+		d.style.left = "0px";
+		var pos = 0;
+		var flag = 0;
+		start();
+		function start() {
+			//document.getElementById('stop').value = "STOP";
+			if(flag == 0)
+				id = setInterval(change,5);
+			else
+				id = setInterval(change1,5);
+
+
+			function change() {
+				if(pos == 100) {
+					clearInterval(id);
+					//pos=0;
+					id = setInterval(change1,5);
+					
+				} else {
+					pos++;
+					d.style.left = pos + "px";
+					var y = parseInt(Math.sqrt(2500-((pos-50)*(pos-50))) + 50) + "px";
+					d.style.top = y;
+					flag = 0;
+				}
+			}
+			function change1() {
+				if(pos == 0) {
+					clearInterval(id);
+					id = setInterval(change,5);
+				} else {
+					pos--;
+					d.style.left = pos + "px";
+					var y = parseInt(-Math.sqrt(2500-((pos-50)*(pos-50))) + 50) + "px";
+					d.style.top = y;
+					flag =1;
+				}
+			}
+		}
+		function stop() {
+			if(document.getElementById('stop').value === "START") {
+				document.getElementById('stop').value = "STOP";
+				start();
+			} else {
+				document.getElementById('stop').value = "START";
+				clearInterval(id);
+
+			}			
+		}
+		
+	</script>
+</body>
+</html>
