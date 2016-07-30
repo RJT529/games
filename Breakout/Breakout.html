@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>BreakOut Game</title>
+	<meta charset = "utf-8">
+	<meta http-equiv="refresh" content="200">
+	<style type="text/css">
+		* {
+			padding: 0px;
+			margin:0 auto;
+		}
+		canvas {
+			background-color: lightyellow;
+			border:1px solid black;
+		}
+	</style>
+</head>
+<body style="background-color:#555">
+<canvas id = "canvas" width = "600" height = "400"></canvas>
+<script type="text/javascript">
+
+	var paddle;
+	var ball;
+	var obstacles = [];
+	var myScore;
+	var pause = false;
+
+	var w = document.getElementById('canvas').width;
+	var h = document.getElementById('canvas').height;
+	
+	function startGame() {
+		paddle = new component(100, 10, "black", w/2 -50, h - 11);
+		ball = new component(10, 10, "red", w/2 - 5, h - 21, "ball");
+
+		for(i = 0; i < 48; i++) {
+			obstacles[i] = new component(46,10,"orange",((i)*50)%600,(2+((Math.floor(i/12))*13)));
+		}
+		myGameArea.start();
+	}
+
+	var myGameArea = {
+		canvas: document.getElementById('canvas'),
+		start: function() {
+			this.context = this.canvas.getContext('2d');
+			document.body.insertBefore(this.canvas,document.body.childNodes[0]);
+			this.interval = setInterval(updateGameArea,5);
+		},
+		clear: function() {
+			this.context.clearRect(0,0,w,h);
+		},
+		stop: function() {
+			clearInterval(this.interval);
+		}
+	}
+
+	function component(width,height,color,x,y,type) {
+		this.type = type;
+		this.width = width;
+		this.height = height;
+
+		if(this.type == "ball") {
+			this.dx = +2;
+			this.dy = -2;
+		} else {
+			this.dx = 0;
+			this.dy = 0;	
+		}
+		
+		this.x = x;
+		this.y = y;
+
+		this.update = function(){
+			ctx = myGameArea.context;
+			if(this.type == "text") {
+				ctx.font = this.width + " " + this.height;
+				ctx.fillStyle= color;
+				ctx.fillText(this.text,this.x,this.y);
+			}else {
+				ctx.fillStyle = color;
+				ctx.fillRect(this.x,this.y,this.width,this.height);
+			}
+		}
+
+		this.newPos = function() {
+			if(this.type == "ball") {
+				this.x += this.dx;
+				this.y += this.dy;
+
+				if(this.x > w - this.width) {
+					this.dx = -2;
+				} else if(this.x < 0) {
+					this.dx = +2;
+				}
+
+				if(!this.hitBottom()) {
+					if(this.y > h - this.height) {
+						this.dy = -2;
+					} else if(this.y < 0) {
+					this.dy = +2;
+					}
+				} else {
+					myGameArea.stop();
+				}
+
+			for(i = 0 ; i < obstacles.length ; i++) {
+				if(this.strike(obstacles[i])){
+					myGameArea.context.clearRect(obstacles[i].x,obstacles[i].y,obstacles[i].width,obstacles[i].height);
+					obstacles.splice(i,1);
+				}
+			}
+					
+						
+			}
+		}
+
+		this.hitBottom = function(){
+			if(this.y >= h - this.height- paddle.height) {
+				if(this.x > paddle.x-this.width + 1 && this.x < paddle.x + paddle.width) {
+					return false;
+				} else {
+				return false;
+				}
+			}
+		}
+
+		this.strike = function(otherObj) {
+
+			var myleft = this.x;
+			var myright = this.x + this.width;
+			var mytop = this.y;
+			var mybottom = this.y + this.height;
+
+			var otherleft  = otherObj.x;
+			var otherright = otherObj.x + otherObj.width;
+			var othertop= otherObj.y;
+			var otherbottom = otherObj.y + otherObj.height;
+
+			if(mytop == otherbottom && myright <= otherright && myleft >= otherleft-this.width+1) {			
+				this.dy = +2;
+				return true;
+			}else
+			if(myright == otherright && mytop >= othertop - this.height + 1 && mybottom <= otherbottom){
+				this.dx = +2;
+				return true;
+			}else
+			if(myleft == otherleft && mytop >= othertop && mybottom <= otherbottom){
+				this.dx = -2;
+				return true;
+			}else
+			if(mybottom == othertop && myright <= otherright && myleft >= otherleft-this.width+1) {
+				this.dy = -2;
+				return true;
+			}
+
+			return false;
+		}
+	}
+
+	function updateGameArea(){
+		myGameArea.clear();
+		
+		ball.newPos();
+		ball.update();
+		paddle.update();
+
+		for(i = 0; i < obstacles.length; i++) {
+			obstacles[i].update();
+		}
+	}
+
+	function getMouseXY(evt)
+	{
+		if(!evt) evt = window.event;
+	    
+	    tempX = event.clientX + document.body.scrollLeft
+	    tempY = event.clientY + document.body.scrollTop
+	    	 
+	    if(tempX < 0)
+	    {
+	    tempX = 0
+	    } 
+	 
+	    paddle.x = tempX	    
+	 
+	    if((paddle.x) > Math.floor(w-100))
+	    {
+	    paddle.x = Math.floor(w-100)
+	    }
+	}
+
+	function pause(e) {
+		
+	}
+ 
+	document.onmousemove = getMouseXY;
+
+	document.onkeypress = function(e){
+		if(!e) e = window.event;
+		var key = e.which;				
+		if(key == "32" && pause == false) {			//to enable paus
+			pause = true;
+			myGameArea.stop();
+		} else {
+			pause = false;
+			myGameArea.interval  = setInterval(updateGameArea,50);
+		}
+	};
+
+	startGame();
+
+	
+
+</script>
+</body>
+</html>
